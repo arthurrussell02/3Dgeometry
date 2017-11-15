@@ -19,15 +19,18 @@
 		<script>
 			var camera, scene, renderer;
 			var mesh;
+			var clock = new THREE.Clock();
+			var beach; 
 			init();
 			animate();
 			function init() {
 				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
 				camera.position.z = 400;
 				scene = new THREE.Scene();
-				var texture = new THREE.TextureLoader().load( 'images/giphy.gif' );
+				var texture = new THREE.ImageUtils.loadTexture('images/beach.png');
+				beach = new TextureAnimator (texture, 10, 50, 200, 75 ); // texture, #horiz, #vert, #total, duration.
 				var geometry = new THREE.BoxBufferGeometry( 200, 200, 200 );
-				var material = new THREE.MeshBasicMaterial( { map: texture } );
+				var material = new THREE.MeshBasicMaterial( { map: texture, side:THREE.DoubleSide } );
 				mesh = new THREE.Mesh( geometry, material );
 				scene.add( mesh );
 				renderer = new THREE.WebGLRenderer();
@@ -46,8 +49,58 @@
 				requestAnimationFrame( animate );
 				mesh.rotation.x += 0.005;
 				mesh.rotation.y += 0.01;
-				renderer.render( scene, camera );
+				render();
+				update();
+
 			}
+			function update()
+			{ var delta = clock.getDelta();
+
+				beach.update(1000* delta);
+			 }
+			 function render()
+			 {
+			 	renderer.render( scene, camera );
+
+			 }
+			 function TextureAnimator(texture, tilesHoriz, tilesVert, numTiles, tileDispDuration) 
+{	
+	// note: texture passed by reference, will be updated by the update function.
+		
+	this.tilesHorizontal = tilesHoriz;
+	this.tilesVertical = tilesVert;
+	// how many images does this spritesheet contain?
+	//  usually equals tilesHoriz * tilesVert, but not necessarily,
+	//  if there at blank tiles at the bottom of the spritesheet. 
+	this.numberOfTiles = numTiles;
+	texture.wrapS = texture.wrapT = THREE.RepeatWrapping; 
+	texture.repeat.set( 1 / this.tilesHorizontal, 1 / this.tilesVertical );
+
+	// how long should each image be displayed?
+	this.tileDisplayDuration = tileDispDuration;
+
+	// how long has the current image been displayed?
+	this.currentDisplayTime = 0;
+
+	// which image is currently being displayed?
+	this.currentTile = 0;
+		
+	this.update = function( milliSec )
+	{
+		this.currentDisplayTime += milliSec;
+		while (this.currentDisplayTime > this.tileDisplayDuration)
+		{
+			this.currentDisplayTime -= this.tileDisplayDuration;
+			this.currentTile++;
+			if (this.currentTile == this.numberOfTiles)
+				this.currentTile = 0;
+			var currentColumn = this.currentTile % this.tilesHorizontal;
+			texture.offset.x = currentColumn / this.tilesHorizontal;
+			var currentRow = Math.floor( this.currentTile / this.tilesHorizontal );
+			texture.offset.y = currentRow / this.tilesVertical;
+		}
+	};
+}		
 		</script>
 
 	</body>
